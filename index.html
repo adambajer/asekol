@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OpenStreetMap with Leaflet.js</title>
+    <title>Map with GPS and Distance</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <!-- Leaflet.markercluster CSS -->
@@ -53,6 +53,38 @@
                 popupAnchor: [0, -32]
             });
 
+            let userPosition = null;
+
+            // Fetch current location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userPosition = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        // Add a marker for the user's location
+                        L.marker([userPosition.lat, userPosition.lng], {
+                            icon: L.icon({
+                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684913.png', // User marker icon
+                                iconSize: [32, 32],
+                                iconAnchor: [16, 32]
+                            })
+                        }).addTo(map).bindPopup('<strong>Your Location</strong>');
+
+                        // Center map on user's location
+                        map.setView([userPosition.lat, userPosition.lng], 13);
+                    },
+                    (error) => {
+                        console.error('Error fetching GPS position:', error);
+                        alert('Could not retrieve GPS position.');
+                    }
+                );
+            } else {
+                alert('Geolocation is not supported by this browser.');
+            }
+
             // Fetch data from data.json
             fetch('data.json')
                 .then(response => {
@@ -68,6 +100,18 @@
                     console.error('Error loading JSON data:', error);
                 });
 
+            // Function to calculate distance (in km) using Haversine formula
+            function calculateDistance(lat1, lng1, lat2, lng2) {
+                const R = 6371; // Radius of the Earth in kilometers
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLng = (lng2 - lng1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c;
+            }
+
             // Function to add markers to the map
             function addMarkers(data) {
                 data.forEach(location => {
@@ -80,6 +124,23 @@
                     }
 
                     const icon = customIcons[location.Type] || defaultIcon;
+
+                    let distanceInfo = '';
+                    let navigationLink = '';
+
+                    // If user position is available, calculate distance
+                    if (userPosition) {
+                        const distance = calculateDistance(userPosition.lat, userPosition.lng, lat, lng).toFixed(2);
+                        distanceInfo = `<br>Distance: ${distance} km`;
+
+                        // Create a navigation link
+                        navigationLink = `
+                            <br>
+                            <a href="https://www.google.com/maps/dir/${userPosition.lat},${userPosition.lng}/${lat},${lng}" target="_blank">
+                                Navigate Here
+                            </a>`;
+                    }
+
                     const marker = L.marker([lat, lng], { icon });
 
                     marker.bindPopup(`
@@ -88,6 +149,8 @@
                         Internal Number: ${location.Internal_Number}<br/>
                         Phone: ${location.Tel ? '<a href="tel:' + location.Tel.replace(/\s+/g, '') + '">' + location.Tel + '</a>' : 'N/A'}<br/>
                         Municipality: ${location.mu_name}<br/>
+                        ${distanceInfo}
+                        ${navigationLink}
                     `);
 
                     markers.addLayer(marker);
