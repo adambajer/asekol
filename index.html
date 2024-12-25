@@ -3,16 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map with GPS and Distance</title>
+    <title>Map with GPS, Distance, and Routing</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <!-- Leaflet.markercluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <!-- Leaflet Routing Machine CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
     <style>
         #map {
-            height: 100vh; /* Full height */
-            width: 100%;   /* Full width */
+            height: 100vh;
+            width: 100%;
+        }
+        .leaflet-control-fullscreen-button {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -23,15 +30,21 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <!-- Leaflet.markercluster JS -->
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <!-- Leaflet Routing Machine JS -->
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+    <!-- Fullscreen Plugin -->
+    <script src="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize the map
             const map = L.map('map').setView([49.396217, 17.677781], 13);
 
             // Add OpenStreetMap tiles
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
+
+            // Enable fullscreen control
+            L.control.fullscreen().addTo(map);
 
             // Initialize marker cluster group
             const markers = L.markerClusterGroup();
@@ -67,11 +80,11 @@
                         // Add a marker for the user's location
                         L.marker([userPosition.lat, userPosition.lng], {
                             icon: L.icon({
-                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684913.png', // User marker icon
+                                iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684913.png',
                                 iconSize: [32, 32],
                                 iconAnchor: [16, 32]
                             })
-                        }).addTo(map).bindPopup('<strong>Your Location</strong>');
+                        }).addTo(map).bindPopup('<strong>Your Location</strong>').openPopup();
 
                         // Center map on user's location
                         map.setView([userPosition.lat, userPosition.lng], 13);
@@ -100,7 +113,7 @@
                     console.error('Error loading JSON data:', error);
                 });
 
-            // Function to calculate distance (in km) using Haversine formula
+            // Function to calculate distance (in km)
             function calculateDistance(lat1, lng1, lat2, lng2) {
                 const R = 6371; // Radius of the Earth in kilometers
                 const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -124,48 +137,59 @@
                     }
 
                     const icon = customIcons[location.Type] || defaultIcon;
+                    const marker = L.marker([lat, lng], { icon });
 
+                    // Calculate distance and bind popup
                     let distanceInfo = '';
-                    let navigationLink = '';
-
-                    // If user position is available, calculate distance
                     if (userPosition) {
                         const distance = calculateDistance(userPosition.lat, userPosition.lng, lat, lng).toFixed(2);
                         distanceInfo = `<br>Distance: ${distance} km`;
-
-                        // Create a navigation link
-                        navigationLink = `
-                            <br>
-                            <a href="https://www.google.com/maps/dir/${userPosition.lat},${userPosition.lng}/${lat},${lng}" target="_blank">
-                                Navigate Here
-                            </a>`;
                     }
-
-                    const marker = L.marker([lat, lng], { icon });
 
                     marker.bindPopup(`
                         <strong>${location.Name}</strong><br/>
                         Type: ${location.Type}<br/>
                         Internal Number: ${location.Internal_Number}<br/>
-                        Phone: ${location.Tel ? '<a href="tel:' + location.Tel.replace(/\s+/g, '') + '">' + location.Tel + '</a>' : 'N/A'}<br/>
                         Municipality: ${location.mu_name}<br/>
-                        ${distanceInfo}
-                        ${navigationLink}
+                        ${distanceInfo}<br/>
+                        <button onclick="navigateTo(${lat}, ${lng})">Navigate Here</button>
                     `);
 
                     markers.addLayer(marker);
                 });
 
-                // Add the markers to the map
+                // Add markers to the map
                 map.addLayer(markers);
 
-                // Adjust the map view to fit all markers
+                // Fit the map to the bounds of the markers
                 if (markers.getLayers().length > 0) {
                     const group = new L.featureGroup(markers.getLayers());
                     map.fitBounds(group.getBounds().pad(0.2));
                 }
             }
+
+            // Function to navigate to a selected location
+            window.navigateTo = (lat, lng) => {
+                if (userPosition) {
+                    L.Routing.control({
+                        waypoints: [
+                            L.latLng(userPosition.lat, userPosition.lng),
+                            L.latLng(lat, lng)
+                        ],
+                        routeWhileDragging: true
+                    }).addTo(map);
+                } else {
+                    alert('Your GPS position is not available.');
+                }
+            };
         });
+
+        // Register service worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker registered', reg))
+                .catch(err => console.error('Service Worker registration failed', err));
+        }
     </script>
 </body>
 </html>
