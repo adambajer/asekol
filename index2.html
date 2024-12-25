@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenStreetMap with Leaflet.js</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <!-- Leaflet.markercluster CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+    <style>
+        #map {
+            height: 100vh; /* Full height */
+            width: 100%;   /* Full width */
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- Leaflet.markercluster JS -->
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize the map
+            const map = L.map('map').setView([49.396217, 17.677781], 13);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Initialize marker cluster group
+            const markers = L.markerClusterGroup();
+
+            // Define custom icons
+            const customIcons = {
+                'sm.k': L.icon({
+                    iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                })
+            };
+
+            const defaultIcon = L.icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+
+            // Fetch data from data.json
+            fetch('data.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    addMarkers(data);
+                })
+                .catch(error => {
+                    console.error('Error loading JSON data:', error);
+                });
+
+            // Function to add markers to the map
+            function addMarkers(data) {
+                data.forEach(location => {
+                    const lat = parseFloat(location.Lat);
+                    const lng = parseFloat(location.Long);
+
+                    if (isNaN(lat) || isNaN(lng)) {
+                        console.warn(`Invalid coordinates for location ID ${location.Id}: Lat=${location.Lat}, Long=${location.Long}`);
+                        return;
+                    }
+
+                    const icon = customIcons[location.Type] || defaultIcon;
+                    const marker = L.marker([lat, lng], { icon });
+
+                    marker.bindPopup(`
+                        <strong>${location.Name}</strong><br/>
+                        Type: ${location.Type}<br/>
+                        Internal Number: ${location.Internal_Number}<br/>
+                        Phone: ${location.Tel ? '<a href="tel:' + location.Tel.replace(/\s+/g, '') + '">' + location.Tel + '</a>' : 'N/A'}<br/>
+                        Municipality: ${location.mu_name}<br/>
+                    `);
+
+                    markers.addLayer(marker);
+                });
+
+                // Add the markers to the map
+                map.addLayer(markers);
+
+                // Adjust the map view to fit all markers
+                if (markers.getLayers().length > 0) {
+                    const group = new L.featureGroup(markers.getLayers());
+                    map.fitBounds(group.getBounds().pad(0.2));
+                }
+            }
+        });
+    </script>
+</body>
+</html>
