@@ -45,9 +45,9 @@
         /* Button to show markers list */
         #showMarkersListButton {
             position: absolute;
-            top: 109px;
-            left: 10px;
-            z-index: 1000;
+            top: 0px;
+            left: 100px;
+            z-index: 1005;
         }
 
         /* Route details container as a Leaflet control */
@@ -146,7 +146,23 @@
 
         .pagination li a {
             cursor: pointer;
+        } 
+        .modal {
+            display: none;
+            position: fixed;
+            left: 0;
+            right: 0;
+            background-color: #fafafa;
+            padding: 0;
+            max-height: 100%;
+            width: 100%;
+            margin: auto;
+            overflow-y: auto;
+            border-radius: 2px;
+            will-change: top, opacity;
         }
+        #markersListModal {
+        top: 0px !important;}
     </style>
 </head>
 
@@ -155,36 +171,36 @@
 
     <!-- Button to show markers list -->
     <button id="showMarkersListButton" class="btn waves-effect waves-light modal-trigger card-panel red darken-4"
-        data-target="markersListModal">
-        <i class="material-icons left">view_week</i><span id="MarkerCount"></span>
+        data-target="markersListModal" title="Kontejnerů">
+        <i class="material-icons left">restore_from_trash</i><span id="MarkerCount"></span>
     </button>
 
     <!-- Mapa -->
     <div id="map"></div>
     <!-- Modal Structure -->
-    <div id="markersListModal" class="modal bottom-sheet">
-        <div class="modal-content">
-            <table class="striped responsive-table">
-                <thead>
-                    <tr>
-                        <th>Název</th>
-                        <th>Číslo</th>
-                        <th>Provozovatel</th>
-                        <th>Adresa</th>
-                        <th>PSČ</th>
-                        <th>Okres</th>
-                    </tr>
-                </thead>
-                <tbody id="markersListContentBody">
-                    <!-- Dynamicky generované řádky -->
-                </tbody>
-            </table>
-            <!-- Kontejner pro stránkovací ovládací prvky -->
-            <div class="center-align" id="paginationControls" style="margin-top: 20px;">
-                <!-- Stránkovací prvky budou dynamicky generovány zde -->
-            </div>
-        </div>
+<div id="markersListModal" class="modal">
+    <div class="modal-content">
+        <table id="markersTable" class="display">
+            <thead>
+                <tr>
+                    <th>Název</th>
+                    <th>Číslo</th>
+                    <th>Provozovatel</th>
+                    <th>Adresa</th>
+                    <th>PSČ</th>
+                    <th>Kraj</th>
+                </tr>
+            </thead>
+            <tbody id="markersListContentBody">
+                <!-- Dynamic rows will be inserted here -->
+            </tbody>
+        </table>
+        <!-- Add content that might overflow to test scrolling -->
     </div>
+    <div class="modal-footer">
+        <a href="#!" class="modal-close btn red darken-4">Zavřít</a>
+    </div>
+</div> 
 
 
     <!-- Leaflet JS -->
@@ -198,12 +214,20 @@
     <!-- Materialize JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
     <!-- Custom JS -->
-    <script>
-        const ITEMS_PER_PAGE = 10; // Počet markerů na stránku
+    <!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 
-        let currentPage = 1; // Aktuální stránka
-        let totalPages = 1; // Celkový počet stránek
-        let visibleMarkersGlobal = []; // Globální pole pro viditelné markery 
+<!-- jQuery (required by DataTables) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+    <script>
+        let dataTable;
+        let visibleMarkersGlobal = [];
+        const ITEMS_PER_PAGE = 10; // Not needed with DataTables
+     
         document.addEventListener('DOMContentLoaded', () => {
 
             // Initialize Materialize select and modal
@@ -227,12 +251,11 @@
             L.control.fullscreen().addTo(map);
 
             // Initialize marker cluster group
-            const markers = L.markerClusterGroup();
-            map.on('moveend', generateMarkersList);
+            const markers = L.markerClusterGroup(); 
 
             // Define default icon
             const defaultIcon = L.icon({
-                iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684908.png', // Replace with your own icon if desired
+                iconUrl: './restore.png', // Replace with your own icon if desired
                 iconSize: [32, 32],
                 iconAnchor: [16, 32],
                 popupAnchor: [0, -32]
@@ -240,6 +263,11 @@
 
             let userPosition = null;
             let currentRoutingControl = null; // For tracking current route
+            // Example: Refresh table when the map view changes
+map.on('moveend', function() {
+    generateMarkersList();
+});
+
             const RouteDetailsControl = L.Control.extend({
                 options: {
                     position: 'topright'
@@ -278,25 +306,56 @@
                     return container;
                 }
             });
-
+            $(document).ready(function() {
+                dataTable = $('#markersTable').DataTable({
+                    paging: true,
+                    searching: true,
+                    info: true,
+                    pageLength: 15, // Number of records per page
+                    language: {
+                        sEmptyTable: "Žádná data nejsou k dispozici",
+                        sInfo: "Zobrazuji _START_ až _END_ z _TOTAL_ kontejnerů",
+                        sInfoEmpty: "Zobrazuji 0 až 0 z 0 kontejnerů",
+                        sInfoFiltered: "(filtrováno z _MAX_ celkových kontejnerů)",
+                        sLengthMenu: "",
+                        sLoadingRecords: "Načítání...",
+                        sProcessing: "Zpracovávání...",
+                        sSearch: "Hledat:",
+                        sZeroRecords: "Žádné shody nenalezeny",
+                        oPaginate: {
+                            sFirst: "První",
+                            sPrevious: "Předchozí",
+                            sNext: "Další",
+                            sLast: "Poslední"
+                        },
+                        oAria: {
+                            sSortAscending: ": aktivujte pro seřazení sloupce vzestupně",
+                            sSortDescending: ": aktivujte pro seřazení sloupce sestupně"
+                        }
+                    }
+ 
+                });
+            
+                // Initial population of the table
+                generateMarkersList();
+            });
+            
             const routeDetailsControl = new RouteDetailsControl();
             map.addControl(routeDetailsControl);
 
             // Function to create popup content in Czech
             function createPopupContent(location) {
                 let content = `<h5>${escapeHtml(location.Name)}</h5>`;
-                content += `<strong>Číslo:</strong> ${escapeHtml(location.Internal_Number)}<br/>`;
-                content += `<strong>Provozovatel:</strong> ${escapeHtml(location.Owner_Name)}<br/>`;
-                content += `<strong>Oblast:</strong> ${escapeHtml(location.Municipality)}<br/>`;
-                content += `<strong>Adresa:</strong> ${escapeHtml(location.Street)}, ${escapeHtml(location.House_Nr)}<br/>`;
-                content += `<strong>PSČ:</strong> ${escapeHtml(location.Post_Code)}<br/>`;
-                content += `<strong>Okres:</strong> ${escapeHtml(location.region)}<br/>`;
-
+                content += `${escapeHtml(location.Street)}, ${escapeHtml(location.House_Nr)},  ${escapeHtml(location.Post_Code)}<br/>`;
+                content += `${escapeHtml(location.Internal_Number)}<br/>`;
+                content += `${escapeHtml(location.Owner_Name)} <br/>`;
+                content += `${escapeHtml(location.Municipality)} ${escapeHtml(location.region)}<br/>`;
+   
                 // Add navigation button
-                content += `<a class="waves-effect waves-light btn red darken-4" style="margin-top:5px;" title="Naviguj" onclick="navigateTo(${location.Lat}, ${location.Long}, '${escapeHtml(location.Name)}')"><i class="material-icons left">route</i></a>`;
+                content += `<a class="waves-effect waves-light btn red darken-4" style="margin-top:5px;" title="Naviguj" onclick="navigateTo(${location.Lat}, ${location.Long}, '${escapeHtml(location.Name)}')"><i class="material-icons">route</i></a>`;
 
                 // Add Panorama button without PID
-                content += ` <a class="btn waves-effect waves-light indigo darken-1" style="margin-top:5px;" title="Panorama mapy.cz" onclick="openPanorama(${location.Lat}, ${location.Long})"><i class="material-icons left">map</i></a>`;
+                content += ` <a class="btn waves-effect waves-light red darken-4" style="margin-top:5px;" title="Panorama mapy.cz" onclick="openPanorama(${location.Lat}, ${location.Long})"><i class="material-icons">map</i></a>`;
 
                 return content;
             }
@@ -535,46 +594,48 @@
 
 
 
-            function generateMarkersList(page) {
+            function generateMarkersList() {
                 const markersListContentBody = document.getElementById('markersListContentBody');
-                const paginationControls = document.getElementById('paginationControls');
-                markersListContentBody.innerHTML = ''; // Clear the existing content
-                paginationControls.innerHTML = ''; // Clear the existing pagination
-
-                const visibleMarkers = getVisibleMarkers(); // Get the visible markers on the map
-                visibleMarkersGlobal = visibleMarkers; // Store in the global variable for pagination
-
-                const count = visibleMarkers.length;
                 const MarkerCount = document.getElementById('MarkerCount');
-                MarkerCount.innerText = `Viditelných míst: ${count}`;
-
-                if (count === 0) {
-                    markersListContentBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Žádná místa nejsou aktuálně zobrazena.</td></tr>';
+                
+                // Clear existing table data
+                dataTable.clear();
+            
+                const visibleMarkers = getVisibleMarkers(); // Get the visible markers on the map
+                visibleMarkersGlobal = visibleMarkers; // Store in the global variable if needed
+            
+                const count = visibleMarkers.length;
+                MarkerCount.innerText = `${count}`;
+                 if (count === 0) {
+                    // Optionally, you can display a message within the DataTable
+                    dataTable.row.add([
+                        '<span style="display: block; text-align: center;" colspan="6">Žádná místa nejsou aktuálně zobrazena.</span>',
+                        '', '', '', '', ''
+                    ]).draw();
                     return;
                 }
-
-                // Calculate total pages
-                totalPages = Math.ceil(count / ITEMS_PER_PAGE);
-                currentPage = page;
-
-                // Calculate the indices for the current page
-                const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-                const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, count);
-                const markersToDisplay = visibleMarkers.slice(startIndex, endIndex);
-
-                // Generate table rows for the current page
-                markersToDisplay.forEach((location) => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${escapeHtml(location.Name)}</td>
-                        <td>${escapeHtml(location.Internal_Number)}</td>
-                        <td>${escapeHtml(location.Owner_Name)}</td>
-                        <td>${escapeHtml(location.Street)}, ${escapeHtml(location.House_Nr)}</td>
-                        <td>${escapeHtml(location.Post_Code)}</td>
-                        <td>${escapeHtml(location.region)}</td>
-                    `;
-                    // Add click event to center on marker and open its popup
-                    tr.addEventListener('click', () => {
+            
+                // Prepare data for DataTable
+                const tableData = visibleMarkers.map(location => {
+                    return [
+                        escapeHtml(location.Name),
+                        escapeHtml(location.Internal_Number),
+                        escapeHtml(location.Owner_Name),
+                        `${escapeHtml(location.Street)}, ${escapeHtml(location.House_Nr)}`,
+                        escapeHtml(location.Post_Code),
+                        escapeHtml(location.region)
+                    ];
+                });
+            
+                // Add data to DataTable
+                dataTable.rows.add(tableData).draw();
+            
+                // Handle row click events
+                $('#markersTable tbody').off('click').on('click', 'tr', function () {
+                    const rowData = dataTable.row(this).data();
+                    const location = visibleMarkers.find(loc => loc.Name === rowData[0] && loc.Internal_Number === rowData[1]);
+                    
+                    if (location) {
                         map.setView([parseFloat(location.Lat), parseFloat(location.Long)], 17);
                         markers.eachLayer(function (marker) {
                             if (marker.location.Id === location.Id) {
@@ -584,56 +645,10 @@
                         // Close modal after selection
                         const modalInstance = M.Modal.getInstance(document.getElementById('markersListModal'));
                         modalInstance.close();
-                    });
-                    markersListContentBody.appendChild(tr);
-                });
-
-                // Generate pagination controls if more than one page exists
-                if (totalPages > 1) {
-                    const pagination = document.createElement('ul');
-                    pagination.classList.add('pagination');
-
-                    // Previous button
-                    const prevLi = document.createElement('li');
-                    prevLi.classList.add(currentPage === 1 ? 'disabled' : 'waves-effect');
-                    prevLi.innerHTML = `<a href="#!"><i class="material-icons">chevron_left</i></a>`;
-                    prevLi.addEventListener('click', () => {
-                        if (currentPage > 1) {
-                            generateMarkersList(currentPage - 1);
-                        }
-                    });
-                    pagination.appendChild(prevLi);
-
-                    // Page buttons
-                    for (let i = 1; i <= totalPages; i++) {
-                        const pageLi = document.createElement('li');
-                        if (i === currentPage) {
-                            pageLi.classList.add('active');
-                        } else {
-                            pageLi.classList.add('waves-effect');
-                            pageLi.style.cursor = 'pointer';
-                            pageLi.addEventListener('click', () => {
-                                generateMarkersList(i);
-                            });
-                        }
-                        pageLi.innerHTML = `<a href="#!">${i}</a>`;
-                        pagination.appendChild(pageLi);
                     }
-
-                    // Next button
-                    const nextLi = document.createElement('li');
-                    nextLi.classList.add(currentPage === totalPages ? 'disabled' : 'waves-effect');
-                    nextLi.innerHTML = `<a href="#!"><i class="material-icons">chevron_right</i></a>`;
-                    nextLi.addEventListener('click', () => {
-                        if (currentPage < totalPages) {
-                            generateMarkersList(currentPage + 1);
-                        }
-                    });
-                    pagination.appendChild(nextLi);
-
-                    paginationControls.appendChild(pagination);
-                }
+                });
             }
+            
             // Function to get visible markers based on map bounds
             function getVisibleMarkers() {
                 const bounds = map.getBounds();
