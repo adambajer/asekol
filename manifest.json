@@ -1,0 +1,21 @@
+{
+    "name": "Mapa Sběrných Míst",
+    "short_name": "MapaSběr",
+    "start_url": "/index.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#0f5132",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "./favicon-96x96.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "./favicon-96x96.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}
