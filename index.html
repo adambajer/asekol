@@ -333,9 +333,9 @@
             }
 
             // Function to add markers to the map
+            // Function to add markers to the map
             function addMarkers(data) {
-                console.log("Přidávání markerů:", data); // Debugging
-                markers.clearLayers(); // Vymazání existujících markerů pro prevenci duplicit
+                markers.clearLayers(); // Clear existing markers
 
                 data.forEach((location) => {
                     const lat = parseFloat(location.Lat);
@@ -346,31 +346,26 @@
                         return;
                     }
 
-                    // Create marker with default icon
+                    // Create a marker for each location
                     const marker = L.marker([lat, lng], { icon: defaultIcon });
+                    marker.location = location; // Attach location data to the marker
 
-                    // Attach location data to marker
-                    marker.location = location;
-
-                    // Bind popup with Czech content
+                    // Bind a popup to the marker
                     marker.bindPopup(createPopupContent(location));
 
-                    // Add marker to marker cluster group
+                    // Add the marker to the cluster group
                     markers.addLayer(marker);
-
-                    console.log(`Marker přidán: ${location.Name}`); // Debugging
                 });
 
-                // Add marker cluster group to map
+                // Add the marker cluster group to the map
                 map.addLayer(markers);
 
-                // Fit map to markers
+                // Fit the map bounds to the markers
                 if (data.length > 0) {
                     const group = new L.featureGroup(markers.getLayers());
                     map.fitBounds(group.getBounds().pad(0.2));
                 }
             }
-
 
             // Function to navigate to a selected location
             function navigateTo(lat, lng, name) {
@@ -538,30 +533,16 @@
                 return text.replace(/[&<>"']/g, function (m) { return map[m]; });
             }
 
-            // Function to get visible markers based on map bounds
-            function getVisibleMarkers() {
-                const bounds = map.getBounds();
-                const visibleMarkers = [];
 
-                markers.eachLayer(function (marker) {
-                    if (bounds.contains(marker.getLatLng())) {
-                        visibleMarkers.push(marker.location);
-                    }
-                });
 
-                console.log("Viditelné markery:", visibleMarkers); // Debugging
-
-                return visibleMarkers;
-            }
-
-            function generateMarkersList(page = 1) {
+            function generateMarkersList(page) {
                 const markersListContentBody = document.getElementById('markersListContentBody');
                 const paginationControls = document.getElementById('paginationControls');
-                markersListContentBody.innerHTML = ''; // Vyčištění stávajícího obsahu
-                paginationControls.innerHTML = ''; // Vyčištění stávajícího stránkování
+                markersListContentBody.innerHTML = ''; // Clear the existing content
+                paginationControls.innerHTML = ''; // Clear the existing pagination
 
-                const visibleMarkers = getVisibleMarkers();
-                visibleMarkersGlobal = visibleMarkers; // Uložení do globální proměnné pro přístup při stránkování
+                const visibleMarkers = getVisibleMarkers(); // Get the visible markers on the map
+                visibleMarkersGlobal = visibleMarkers; // Store in the global variable for pagination
 
                 const count = visibleMarkers.length;
                 const MarkerCount = document.getElementById('MarkerCount');
@@ -572,16 +553,16 @@
                     return;
                 }
 
-                // Výpočet celkového počtu stránek
+                // Calculate total pages
                 totalPages = Math.ceil(count / ITEMS_PER_PAGE);
                 currentPage = page;
 
-                // Výpočet indexů pro aktuální stránku
+                // Calculate the indices for the current page
                 const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
                 const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, count);
                 const markersToDisplay = visibleMarkers.slice(startIndex, endIndex);
 
-                // Generování řádků tabulky pro aktuální stránku
+                // Generate table rows for the current page
                 markersToDisplay.forEach((location) => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -592,28 +573,27 @@
                         <td>${escapeHtml(location.Post_Code)}</td>
                         <td>${escapeHtml(location.region)}</td>
                     `;
-                    // Přidání click eventu pro zaměření na marker a otevření popupu
+                    // Add click event to center on marker and open its popup
                     tr.addEventListener('click', () => {
                         map.setView([parseFloat(location.Lat), parseFloat(location.Long)], 17);
-                        // Najít a otevřít odpovídající popup markeru
                         markers.eachLayer(function (marker) {
                             if (marker.location.Id === location.Id) {
                                 marker.openPopup();
                             }
                         });
-                        // Zavřít modal
+                        // Close modal after selection
                         const modalInstance = M.Modal.getInstance(document.getElementById('markersListModal'));
                         modalInstance.close();
                     });
                     markersListContentBody.appendChild(tr);
                 });
 
-                // Generování stránkovacích ovládacích prvků, pokud je více než jedna stránka
+                // Generate pagination controls if more than one page exists
                 if (totalPages > 1) {
                     const pagination = document.createElement('ul');
                     pagination.classList.add('pagination');
 
-                    // Předchozí tlačítko
+                    // Previous button
                     const prevLi = document.createElement('li');
                     prevLi.classList.add(currentPage === 1 ? 'disabled' : 'waves-effect');
                     prevLi.innerHTML = `<a href="#!"><i class="material-icons">chevron_left</i></a>`;
@@ -624,7 +604,7 @@
                     });
                     pagination.appendChild(prevLi);
 
-                    // Stránky číslovány
+                    // Page buttons
                     for (let i = 1; i <= totalPages; i++) {
                         const pageLi = document.createElement('li');
                         if (i === currentPage) {
@@ -640,7 +620,7 @@
                         pagination.appendChild(pageLi);
                     }
 
-                    // Další tlačítko
+                    // Next button
                     const nextLi = document.createElement('li');
                     nextLi.classList.add(currentPage === totalPages ? 'disabled' : 'waves-effect');
                     nextLi.innerHTML = `<a href="#!"><i class="material-icons">chevron_right</i></a>`;
@@ -654,14 +634,26 @@
                     paginationControls.appendChild(pagination);
                 }
             }
+            // Function to get visible markers based on map bounds
+            function getVisibleMarkers() {
+                const bounds = map.getBounds();
+                const visibleMarkers = [];
 
+                markers.eachLayer(function (marker) {
+                    if (bounds.contains(marker.getLatLng())) {
+                        visibleMarkers.push(marker.location);
+                    }
+                });
 
-
+                console.log("Viditelné markery:", visibleMarkers); // Optional for debugging
+                return visibleMarkers;
+            }
 
 
             // Initialize user location
             initializeUserLocation();
 
+            // Fetch and load data
             // Fetch and load data
             // Fetch and load data
             fetch('data.json')
@@ -674,8 +666,11 @@
                 .then(data => {
                     // Add markers to map
                     addMarkers(data);
-                    // Remove the following line:
-                   
+
+                    // Now that markers are added, call generateMarkersList to initialize pagination
+ 
+                    // Optionally log for debugging
+                    console.log("Data loaded and markers added successfully");
                 })
                 .catch(error => {
                     console.error('Chyba při načítání JSON dat:', error);
