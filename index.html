@@ -54,6 +54,7 @@
         .route-details {
             background: rgba(255, 255, 255, 0.9);
 
+            padding-right: 30pX;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 
         }
@@ -103,6 +104,7 @@
             border: none;
             font-size: 18px;
             cursor: pointer;
+            z-index: 9999;
         }
 
         .close-route-button:hover {
@@ -535,12 +537,10 @@ map.on('moveend', function() {
 
                                 // Check if house number was found
                                 if (userHouseNr) {
-                                    var addressInfo = `
-                                             <span title=" ${escapeHtml(userStreet)} ${escapeHtml(userCity)}">A</span>`;
+                                    var addressInfo = userStreet+', '+ escapeHtml(userCity);
                                 
                                 } else {
-                                    var addressInfo = `
-                                        <span title=" ${escapeHtml(userStreet)} ${escapeHtml(userCity)}">A</span>`;
+                                    var addressInfo = userStreet+', '+ escapeHtml(userCity);
                                 }
 
                                 // Add marker for user's location
@@ -551,9 +551,7 @@ map.on('moveend', function() {
                                         iconAnchor: [16, 32],
                                         popupAnchor: [0, -32]
                                     })
-                                }).addTo(map).bindPopup(`
-                                     ${addressInfo}
-                                `).closePopup();
+                                }).addTo(map).bindTooltip(addressInfo);
 
                                 // Center map on user's location
                                 map.setView([userPosition.lat, userPosition.lng], 13);
