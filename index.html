@@ -45,8 +45,8 @@
         /* Button to show markers list */
         #showMarkersListButton {
             position: absolute;
-            top: 0px;
-            left: 100px;
+            bottom: 0px;
+            left: 0px;
             z-index: 1005;
         }
 
@@ -161,8 +161,7 @@
             border-radius: 2px;
             will-change: top, opacity;
         }
-        #markersListModal {
-        top: 0px !important;}
+      
     </style>
 </head>
 
@@ -170,7 +169,7 @@
 
 
     <!-- Button to show markers list -->
-    <button id="showMarkersListButton" class="btn waves-effect waves-light modal-trigger card-panel red darken-4"
+    <button id="showMarkersListButton" class="btn waves-effect waves-light modal-trigger card-panel red darken-4 leaflet-control leaflet-bar leaflet-control-custom"
         data-target="markersListModal" title="Kontejnerů">
         <i class="material-icons left">restore_from_trash</i><span id="MarkerCount"></span>
     </button>
@@ -537,29 +536,24 @@ map.on('moveend', function() {
                                 // Check if house number was found
                                 if (userHouseNr) {
                                     var addressInfo = `
-                                        Adresa: ${escapeHtml(userStreet)}, ${escapeHtml(userHouseNr)}<br/>
-                                        Město: ${escapeHtml(userCity)}
-                                    `;
+                                             <span title=" ${escapeHtml(userStreet)} ${escapeHtml(userCity)}">A</span>`;
+                                
                                 } else {
                                     var addressInfo = `
-                                        Adresa: ${escapeHtml(userStreet)}<br/>
-                                        Město: ${escapeHtml(userCity)}<br/>
-                                        <em>Přesné číslo domu nebylo nalezeno.</em>
-                                    `;
+                                        <span title=" ${escapeHtml(userStreet)} ${escapeHtml(userCity)}">A</span>`;
                                 }
 
                                 // Add marker for user's location
                                 L.marker([userPosition.lat, userPosition.lng], {
                                     icon: L.icon({
-                                        iconUrl: 'https://cdn-icons-png.flaticon.com/512/684/684913.png', // Replace with your own icon if desired
+                                        iconUrl: './home.png', // Replace with your own icon if desired
                                         iconSize: [32, 32],
                                         iconAnchor: [16, 32],
                                         popupAnchor: [0, -32]
                                     })
                                 }).addTo(map).bindPopup(`
-                                    <strong>Nacházíte se</strong><br/>
-                                    ${addressInfo}
-                                `).openPopup();
+                                     ${addressInfo}
+                                `).closePopup();
 
                                 // Center map on user's location
                                 map.setView([userPosition.lat, userPosition.lng], 13);
