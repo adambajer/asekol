@@ -54,7 +54,11 @@
         .route-details {
             background: rgba(255, 255, 255, 0.9);
 
-            padding-right: 30pX;
+            display: block;
+            padding-left: 20px;
+            padding-top: 15px;
+            padding-right: 30px;
+        
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
 
         }
@@ -286,23 +290,20 @@ map.on('moveend', function() {
                     });
 
                     // Header
+// Container for route details
+const detailsContainer = L.DomUtil.create('div', '', container);
+detailsContainer.className = 'route-details-container';
 
-                    // Table
-                    const table = L.DomUtil.create('table', '', container);
-                    const thead = L.DomUtil.create('thead', '', table);
-                    const headerRow = L.DomUtil.create('tr', '', thead);
-                    const headers = ['Destinace', 'Vzdálenost', 'Odhadovaný čas'];
-                    headers.forEach(text => {
-                        const th = L.DomUtil.create('th', '', headerRow);
-                        th.innerHTML = text;
-                    });
-                    const tbody = L.DomUtil.create('tbody', '', table);
-                    tbody.id = 'routeDetailsBody';
-                    // List for turn-by-turn instructions
+// Body section for dynamic content (to show data)
+const bodySection = L.DomUtil.create('div', '', detailsContainer);
+bodySection.id = 'routeDetailsBody';
+bodySection.className = 'route-details-body';
 
+// List for turn-by-turn instructions
+const instructionsList = L.DomUtil.create('ol', '', container);
+instructionsList.id = 'routeInstructionsList';
+instructionsList.className = 'route-instructions-list';
 
-                    const instructionsList = L.DomUtil.create('ol', '', container);
-                    instructionsList.id = 'routeInstructionsList';
 
                     return container;
                 }
@@ -469,7 +470,7 @@ map.on('moveend', function() {
                     addWaypoints: true,
                     draggableWaypoints: true,
                     fitSelectedRoutes: false,
-                    show: false // Hide default route details
+                    show: true // Hide default route details
                 }).addTo(map);
 
                 console.log("Routing control added to map."); // Debugging
@@ -489,15 +490,7 @@ map.on('moveend', function() {
                             <td>${time} min</td>
                         </tr>
                     `;
-                    // Populate turn-by-turn instructions
-                    const instructionsList = document.getElementById('routeInstructionsList');
-                    instructionsList.innerHTML = ''; // Clear previous instructions
-
-                    route.instructions.forEach(instruction => {
-                        const li = document.createElement('li');
-                        li.innerHTML = instruction.text;
-                        instructionsList.appendChild(li);
-                    });
+               
                     document.getElementById('routeDetailsContainer').classList.add('visible');
 
                 });
