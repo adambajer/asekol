@@ -17,14 +17,14 @@
     <meta name="theme-color" content="#ffffff">
     <!-- Leaflet CSS -->
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="./leaflet.css" />
     <!-- Leaflet.markercluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <!-- Leaflet Routing Machine CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
     <!-- Leaflet Fullscreen CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.fullscreen/Control.FullScreen.css" />
+    <link rel="stylesheet" href="./Control.FullScreen.css" />
     <!-- Materialize CSS -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css" rel="stylesheet">
@@ -64,16 +64,20 @@
         /* Route details container as a Leaflet control */
         .route-details {
             background: rgba(255, 255, 255, 0.9);
-
             display: block;
             padding-left: 20px;
             padding-top: 15px;
+            width: 100%;
             padding-right: 30px;
-        
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            box-shadow: none;
 
         }
+        .leaflet-touch .leaflet-control-layers, .leaflet-touch .leaflet-bar{
+border: 0px solid;
 
+        }.leaflet-right .leaflet-control {
+            margin-right: 0px;
+        }
         .route-details {
             display: none;
             /* Hidden by default */
@@ -178,7 +182,8 @@
             border-radius: 2px;
             will-change: top, opacity;
         }
-      
+        .modal .modal-content {
+padding: 0px;        }
     </style>
 </head>
 
@@ -293,12 +298,7 @@ map.on('moveend', function() {
                     const container = L.DomUtil.create('div', 'route-details');
                     container.id = 'routeDetailsContainer'; // Přidání ID pro správnou manipulaci
 
-                    // Close button
-                    const closeButton = L.DomUtil.create('button', 'close-route-button', container);
-                    closeButton.innerHTML = '&times;';
-                    L.DomEvent.on(closeButton, 'click', () => {
-                        closeRoute();
-                    });
+                
 
                     // Header
 // Container for route details
